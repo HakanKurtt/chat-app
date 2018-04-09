@@ -5,19 +5,62 @@
     <title>Chat Application</title>
     <link href="/styles.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.1.0/socket.io.js"></script>
-    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+
 </head>
 <body>
-    <div id="hakan-chat">
-        <div id="chat-window">
-            <div id="output"></div>
-            <div id="feedback"></div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-sm" id="nickWrap">
+                <p>Bir Kullanıcı Adı Seçiniz:</p>
+                <p id="nickError"></p>
+                <form id="setNick">
+                    <input size="20" id="nickname" />
+                    <input class="btn btn-success" type="submit" value="Başla!"/>
+                </form>
+            </div>
+
+            <div class="col-sm-8"id="contentWrap">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <h5>Gruplar:</h5>
+                        <ul class="list-group" id="grups">
+                            <li class="list-group-item list-group-item-action">Okul</li>
+                            <li class="list-group-item list-group-item-action">Ev</li>
+                            <li class="list-group-item list-group-item-action">İş</li>
+
+                        </ul>
+                    </div>
+                    <div class="col-sm-6"id="chatWrap">
+                        <div id="chat"></div>
+
+                    </div>
+                    <div class="col-sm-3">
+                        <h5>Online Kullanıcılar:</h5>
+                        <ul class="list-group" id="users">
+
+
+
+                        </ul>
+                    </div>
+                </div>
+
+                <form id="send-message" size="35">
+                    <input id="message" size="35" />
+                    <input class="btn btn-success" type="submit"/>
+                </form>
+
+            </div>
+
         </div>
-        <input id="isim" type="text" placeholder="Name" />
-        <input id="message" type="text" placeholder="Message"/>
-        <button id="send">Gönder</button>
     </div>
 
-<script src="/chat.js"></script>
+
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="/chat.js"></script>
 </body>
 </html>

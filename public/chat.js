@@ -1,39 +1,56 @@
-//Sunucuyla bağlantı kurma
-var socket = io.connect('http://localhost:4000');
+$(function() {
+    var socket = io.connect();
 
-//DOM nesnelerine erişim
+    var $nickForm = $('#setNick');
+    var $nickError = $('#nickError');
+    var $nickBox = $('#nickname');
+    var $messageForm = $('#send-message');
+    var $messageBox = $('#message');
+    var $chat = $('#chat');
+    var $users = $('#users');
+    var to='all';
 
-var message = document.getElementById('message'),
-    isim = document.getElementById('isim'),
-    btn = document.getElementById('send'),
-    output = document.getElementById('output'),
-    feedback = document.getElementById('feedback');
+    $(document).on('click','.list-group-item',function(){
+        to = $(this).text();
 
-
-
-//sende tıklandığında chat isimli bir olay yayınla.
-btn.addEventListener('click', function () {
-    socket.emit('chat', {
-        message: message.value,
-        name: isim.value
     });
 
+
+    $nickForm.submit(function(e){
+        e.preventDefault();
+        socket.emit('new user', $nickBox.val(), function(data){ //data degeri sunucudaki callback'e denk.
+            if(data){
+                $('#nickWrap').hide();
+                $('#contentWrap').show();
+            }else {
+                $nickError.html('Bu kullanıcı adı daha önceden alınmış!');
+            }
+        });
+    });
+
+    socket.on('usernames', function(data){
+        var html='';
+
+        for(i=0; i < data.length; i++){
+            html += '<li class="list-group-item list-group-item-action">'+data[i] + '</li>'
+        }
+
+        $users.html(html);
+    });
+
+
+
+    $messageForm.submit(function (e) {
+       e.preventDefault();
+       socket.emit('send message', { msg:$messageBox.val(), to: to});
+       $messageBox.val('');
+    });
+
+    socket.on('new message', function(data){
+        $chat.append('<b>'+ data.nickname + ':</b>'+ data.message + '<br />');
+    });
+
+
+
+
 });
-
-message.addEventListener('keypress', function(){
-    socket.emit('yaziyor', isim.value);
-});
-
-//Eventleri dinleme.
-
-socket.on('chat', function(data){
-    feedback.innerHTML = "";
-   output.innerHTML += '<p><strong>'+ data.name + ' : </strong>' + data.message + '</p>';
-   message.value = "";
-});
-
-socket.on('yaziyor', function(data){
-
-    feedback.innerHTML = '<p><em>'+ data + ' yazıyor...</em></p>';
-
-})
