@@ -12,6 +12,7 @@
     "express": "^4.16.3",
     "kerberos": "0.0.23",
     "mongodb": "^3.0.5",
+    "mongoose": "^5.0.14",
     "socket.io": "^2.1.0"
   },
   "devDependencies": {

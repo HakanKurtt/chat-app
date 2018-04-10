@@ -9,9 +9,15 @@ $(function() {
     var $chat = $('#chat');
     var $users = $('#users');
     var to='all';
+    var room='';
 
-    $(document).on('click','.list-group-item',function(){
+    $(document).on('click','.online-user',function(){
         to = $(this).text();
+
+    });
+
+    $(document).on('click','.group-name',function(){
+        room = $(this).text();
 
     });
 
@@ -32,7 +38,7 @@ $(function() {
         var html='';
 
         for(i=0; i < data.length; i++){
-            html += '<li class="list-group-item list-group-item-action">'+data[i] + '</li>'
+            html += '<li class="list-group-item list-group-item-action online-user">'+data[i] + '</li>'
         }
 
         $users.html(html);
@@ -46,9 +52,16 @@ $(function() {
        $messageBox.val('');
     });
 
+
+    /*socket.on('connect', function(){
+
+    }); */
+
     socket.on('new message', function(data){
         $chat.append('<b>'+ data.nickname + ':</b>'+ data.message + '<br />');
     });
+
+
 
 
 
