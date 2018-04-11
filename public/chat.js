@@ -25,11 +25,27 @@ $(function() {
     $nickForm.submit(function(e){
         e.preventDefault();
         socket.emit('new user', $nickBox.val(), function(data){ //data degeri sunucudaki callback'e denk.
-            if(data){
+            if(data){ //yeniyse
                 $('#nickWrap').hide();
                 $('#contentWrap').show();
-            }else {
-                $nickError.html('Bu kullanıcı adı daha önceden alınmış!');
+                var entermessage = 'Merhaba ' + $nickBox.val();
+                $('#username').text(entermessage);
+
+
+            }else { //eski kullanıcıysa
+                $('#nickWrap').hide();
+                $('#contentWrap').show();
+                var entermessage = 'Merhaba ' + $nickBox.val();
+                $('#username').text(entermessage);
+
+                socket.on('old messages', function(docs){
+                    console.log(docs.message);
+                    for(var i=0; i<docs.length; i++){
+                        $chat.append('<b>'+ docs[i].sender + ':</b>'+ docs[i].message + '<br />');
+                        console.log(docs[i].message);
+                    }
+                })
+
             }
         });
     });
@@ -48,7 +64,7 @@ $(function() {
 
     $messageForm.submit(function (e) {
        e.preventDefault();
-       socket.emit('send message', { msg:$messageBox.val(), to: to});
+       socket.emit('send message', { nickname:$nickBox.val(), msg:$messageBox.val(), to: to});
        $messageBox.val('');
     });
 

@@ -24,17 +24,22 @@ server.listen(4000);
 var users = {}; //kullanıcıları soket_id si ile tutacak olan nesne dizisi.
 
 var userSchema = mongoose.Schema({
-    nickname: String
+    nickname: String,
+    socketid: String,
+    status: {type:Boolean, default:false}
 });
 
 var msgSchema = mongoose.Schema({
     message: String,
     sender: String,
     receiver: String,
-    Date: {type: Date,default:Date.now()}
+    created: {type: Date, default:Date.now()}
 });
 
+
+
 var user = mongoose.model('User',userSchema);
+var message = mongoose.model('message',msgSchema);
 
 
 //statik dosyalar
@@ -46,38 +51,87 @@ app.use(express.static('public'));
 
 
 
-
     io.on('connection', function(socket){
         console.log("Soket bağlantısı gerçekleşti.", socket.id);
 
+
+        //uygulamadaki kullanıcıları getiren fonksiyon.
+        function getUsers(){
+            user.find({}, function(err, docs){
+                if(err) throw err;
+
+                for(var i=docs.length-1; i >= 0; i--){
+                    users[docs[i].nickname] = docs[i].socketid;
+
+                }
+                //io.sockets.emit('usernames', Object.keys(users)); //tüm kullanıcılara users nesnesindek key değerleri(nickname'leri) gönderir.
+
+            });
+
+
+        }
+
+        getUsers();
 
         var result;
 
         //yeni bir kullanıcı geldiğinde
         socket.on('new user', function(data, callback){
 
+
+            //bu kullanıcı daha önceden oluşturulmuş mu?
             user.findOne({ 'nickname': data }, function(err, result) {
                 if (err) {
                     throw err;
                 }
 
-                if (result) {
+                if (result) { //kullanıcı önceden oluşturulmuş.
                     callback(false);
-                } else {
+
+
+
+                    //kullanıcının yeni soket adresini güncelle.
+                    user.findOneAndUpdate({nickname:data},{$set:{socketid:socket.id, status:true}},function(err,doc){
+                        if(err) throw err;
+                        console.log("Güncelleme başarılı!");
+                        console.log(data+'='+socket.id);
+                        users[data]=socket.id;
+                        updateNicknames();
+                        });
+
+
+
+
+
+                    //eski mesajları getir.
+                    message.find({sender: data}).exec( function(err, docs){
+                        if(err) throw err;
+                        console.log(docs);
+                        io.to(socket.id).emit('old messages', docs);
+                    });
+
+
+                } else {  // burada yeni kullanıcı kaydedilecek.
                     callback(true);
                     socket.nickname = data;
-                    users[socket.nickname] = socket;
+                    users[socket.nickname] = socket.id;
                     updateNicknames();
 
-                    var newUser= new user({nickname:data});
+
+                    var newUser= new user({nickname:data, socketid: socket.id, status:true});
 
                     newUser.save(function(err){
                         if(err) throw err;
                         console.log("Kisi kaydedildi");
                     });
+
+
                 }
 
             });
+
+
+
 
 
 
@@ -106,20 +160,34 @@ app.use(express.static('public'));
         //istemciden gelen chat olayını yakala.
         socket.on('send message', function(data){
 
-            if(data.to === 'all'){
-                io.sockets.emit('new message', {message: data.msg, nickname: socket.nickname}); //gelen mesajı tüm clientlara gönder.
-            }else{
-                socket.emit('new message', {message: data.msg, nickname: socket.nickname}); //kendine
-                io.to(users[data.to].id).emit('new message', {message: data.msg, nickname: socket.nickname}); //karşıdakine
+            if(data.to === 'all'){ //herkese mesaj gönderme
+                var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
+                newMsg.save(function(err){
+                    if(err) throw err;
+
+                    socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
+                    io.sockets.emit('new message', {message: data.msg, nickname: data.nickname}); //gelen mesajı tüm clientlara
+                });
+
+            }else{ // özel mesaj gönderme
+                console.log(data.nickname);
+                var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
+                newMsg.save(function(err){
+                    if(err) throw err;
+                    console.log('karşıdaki:'+users[data.to]);
+                    socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
+                    io.to(users[data.to]).emit('new message', {message: data.msg, nickname: data.nickname}); //karşıdakine
+                });
             }
         });
+
+
 
 
 
         //kullanıcı uygulamadan çıktığında
         socket.on('disconnect', function(data){
             if(!socket.nickname) return;
-            delete users[socket.nickname];
             updateNicknames();
         });
 
