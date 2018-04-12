@@ -66,3 +66,29 @@ button{
     border-radius: 0 0 2px 2px;
 }
 
+.glyphicon-one-fine-red-dot:before {
+    content:"\25cf";
+    font-size: 1.5em;
+    color: red;
+}
+
+.glyphicon-one-fine-dot:before {
+    content: "\25cf";
+    font-size: 1.5em;
+    color:lawngreen;
+}
+
+.left-frame{
+    position:relative;
+}
+
+#herkes {
+    position:absolute;
+    bottom: 0;
+}
+
+#feedback p{
+    color: #aaa;
+    padding: 14px 0px;
+    margin: 0 20px;
+}

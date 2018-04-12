@@ -11,9 +11,10 @@
 </head>
 <body>
 
-    <div class="container">
+<div class="container">
         <div class="row">
             <div class="col-sm" id="nickWrap">
+
                 <p>Bir Kullanıcı Adı Seçiniz:</p>
                 <p id="nickError"></p>
                 <form id="setNick">
@@ -24,21 +25,24 @@
 
             <div class="col-sm-8"id="contentWrap">
                 <div class="row">
-                    <div class="col-sm-3">
+                    <div class="col-sm-3 left-frame">
                         <h5>Gruplar:</h5>
                         <ul class="list-group" id="grups">
                             <li id="okul" class="list-group-item list-group-item-action group-name">Okul</li>
                             <li id="ev" class="list-group-item list-group-item-action group-name">Ev</li>
                             <li id="is" class="list-group-item list-group-item-action group-name">İş</li>
+                            <li id="herkes" class="list-group-item list-group-item-action group-name">Herkes</li>
 
                         </ul>
                     </div>
                     <div class="col-sm-6"id="chatWrap">
                         <h4 id="username"></h4>
+                        <div id="feedback"></div>
                         <div id="chat"></div>
 
                     </div>
                     <div class="col-sm-3">
+
                         <h5>Online Kullanıcılar:</h5>
                         <ul class="list-group" id="users">
 
@@ -49,7 +53,7 @@
                 </div>
 
                 <form id="send-message" size="35">
-                    <input id="message" size="35" />
+                    <input id="message" size="35" type="text" placeholder="Mesaj" />
                     <input class="btn btn-success" type="submit"/>
                 </form>
 

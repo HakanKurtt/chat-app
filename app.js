@@ -5,6 +5,13 @@ var mongoose = require('mongoose');
 //var MongoClient = mongodb.MongoClient;
 //var url = 'mongodb://localhost:27017/chat-app';
 
+var logger = require('morgan');  // isteklerle ilgili logları konsola yazmak için
+
+
+
+//app.use()  gerekli olan middleware (fonksiyon) leri eklemek (aktif hale getirmek) için kullanılır
+
+
 mongoose.connect('mongodb://localhost:27017/chat', function(err){
     if(err){
         console.log(err);
@@ -20,9 +27,10 @@ var server = require('http').createServer(app);
 var io = socket(server);
 
 server.listen(4000);
+app.use(logger('dev'));
 
 var users = {}; //kullanıcıları soket_id si ile tutacak olan nesne dizisi.
-
+var status=[];
 var userSchema = mongoose.Schema({
     nickname: String,
     socketid: String,
@@ -51,8 +59,12 @@ app.use(express.static('public'));
 
 
 
-    io.on('connection', function(socket){
+io.on('connection', function(socket){
+
         console.log("Soket bağlantısı gerçekleşti.", socket.id);
+
+
+
 
 
         //uygulamadaki kullanıcıları getiren fonksiyon.
@@ -63,21 +75,28 @@ app.use(express.static('public'));
                 for(var i=docs.length-1; i >= 0; i--){
                     users[docs[i].nickname] = docs[i].socketid;
 
+
+
                 }
+
                 //io.sockets.emit('usernames', Object.keys(users)); //tüm kullanıcılara users nesnesindek key değerleri(nickname'leri) gönderir.
 
             });
+
 
 
         }
 
         getUsers();
 
+
         var result;
+        var socketindex;
 
         //yeni bir kullanıcı geldiğinde
         socket.on('new user', function(data, callback){
 
+            console.log(users[socket.id]);
 
             //bu kullanıcı daha önceden oluşturulmuş mu?
             user.findOne({ 'nickname': data }, function(err, result) {
@@ -96,25 +115,32 @@ app.use(express.static('public'));
                         console.log("Güncelleme başarılı!");
                         console.log(data+'='+socket.id);
                         users[data]=socket.id;
+
+                        //Kullanıcının durumunu diziye atama.
+                        status.push(data);
+                        socket.index=status.indexOf(data);
+
+                        //socket.emit('online', data); //kendine
+                        //io.sockets.emit('online', data);
+
                         updateNicknames();
                         });
 
 
 
-
-
-                    //eski mesajları getir.
-                    message.find({sender: data}).exec( function(err, docs){
-                        if(err) throw err;
-                        console.log(docs);
-                        io.to(socket.id).emit('old messages', docs);
-                    });
+                //eski public mesajları getir.
+                getAllMessages();
 
 
                 } else {  // burada yeni kullanıcı kaydedilecek.
                     callback(true);
                     socket.nickname = data;
                     users[socket.nickname] = socket.id;
+                    status.push(data);
+                    socketindex= status.indexOf(data);
+                    //socket.emit('online', data); //kendine
+                    //io.sockets.emit('online', data);
+
                     updateNicknames();
 
 
@@ -130,31 +156,41 @@ app.use(express.static('public'));
 
             });
 
-
-
-
-
-
-            /*if(result == undefined){ //eger kullanıcı ismi dizide varsa
-                callback(false);
-            }else{
-                callback(true);
-                socket.nickname = data;
-                users[socket.nickname] = socket;
-                updateNicknames();
-
-                var newUser= new user({nickname:data});
-
-                newUser.save(function(err){
+            socket.on("get private messages", function(data){
+                message.find( {$or: [{$and:[{sender:data.nickname},{receiver:data.to}]},{$and:[{sender:data.to},{receiver:data.nickname}]}]}).exec( function(err, docs){
                     if(err) throw err;
-                    console.log("Kisi kaydedildi");
+                    console.log(docs);
+                    //socket.emit('get all messages', docs); //kendine
+                    //io.sockets.emit('get all messages', docs);
+                    io.to(socket.id).emit('private messages', docs);
                 });
-            }*/
+            });
+
+
         });
+
+        function getAllMessages() {
+
+
+            message.find({receiver: 'all'}).exec(function (err, docs) {
+                if (err) throw err;
+                console.log(docs);
+                //socket.emit('get all messages', docs); //kendine
+                //io.sockets.emit('get all messages', docs);
+                io.to(socket.id).emit('get all messages', docs);
+            });
+        }
+
+        socket.on('get public', function(data){
+            getAllMessages();
+        })
+
+
 
         //kullanıcıların bulunduğu listeyi günceller.
         function updateNicknames(){
             io.sockets.emit('usernames', Object.keys(users)); //tüm kullanıcılara users nesnesindek key değerleri(nickname'leri) gönderir.
+            io.sockets.emit('status',status);
         }
 
         //istemciden gelen chat olayını yakala.
@@ -182,21 +218,26 @@ app.use(express.static('public'));
         });
 
 
+        //broadcast
+        /*socket.on('yaziyor', function(data){
 
+            socket.broadcast.emit('yaziyor',data);
+
+        }); */
 
 
         //kullanıcı uygulamadan çıktığında
         socket.on('disconnect', function(data){
-            if(!socket.nickname) return;
+
+            console.log(status[socket.index]+" cıktı");
+
+            delete status[socket.index];
             updateNicknames();
-        });
 
-        //broadcast
-        socket.on('yaziyor', function(data){
-
-            socket.broadcast.emit('yaziyor',data);
 
         });
+
+
     });
 
 
