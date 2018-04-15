@@ -8,8 +8,9 @@ $(function() {
     var $messageBox = $('#message');
     var $chat = $('#chat');
     var $users = $('#users');
+    var $roomname = $('#roomname');
     var to='all';
-    var room='';
+
     var $feedback= $('#feedback');
     var message=document.getElementById('message');
 
@@ -19,10 +20,7 @@ $(function() {
 
     });
 
-    $(document).on('click','.group-name',function(){
-        room = $(this).text();
 
-    });
 
 
 
@@ -31,7 +29,7 @@ $(function() {
 
     $nickForm.submit(function(e){
         e.preventDefault();
-        socket.emit('new user', $nickBox.val(), function(data){ //data degeri sunucudaki callback'e denk.
+        socket.emit('new user', {nickname:$nickBox.val(), roomname:$roomname.val()}, function(data){ //data degeri sunucudaki callback'e denk.
 
             if(data){ //yeniyse
                 $('#nickWrap').hide();
@@ -47,7 +45,7 @@ $(function() {
                 $('#username').text(entermessage);
 
 
-
+                //var olan kullanıcının eski mesajlarını getir.
                 socket.on('get all messages', function(docs){
                     $chat.html('');
                     for(var i=0; i<docs.length; i++){
@@ -97,9 +95,32 @@ $(function() {
     $(document).on('click','#herkes',function(){
         to = 'all';
 
-        socket.emit("get public");
+
+        socket.emit("get public", to);
+    });
+
+    //Spesifik bir room'u seçer.
+    $(document).on('click','.group-name',function(){
+        to = $(this).text();
+        console.log(to);
+        $chat.html('');
+
+        socket.emit("get room messages", {nickname:$nickBox.val(), roomname: to}, function(data){
+            if(data === false){
+                $chat.html('');
+            }
+        });
 
     });
+
+    socket.on('room', function(docs){
+        $chat.html('');
+        for(var i=0; i<docs.length; i++){
+            $chat.append('<b>'+ docs[i].sender + ':</b>'+ docs[i].message + '<br />');
+            console.log(docs[i].message);
+        }
+    })
+
 
     $(document).on('click','.list-group-item', function(e) {
         e.preventDefault();
@@ -121,7 +142,7 @@ $(function() {
 
 
     socket.on('new message', function(data){
-        feedback.innerHTML = "";
+        $messageBox.innerHTML = "";
         $chat.append('<b>'+ data.nickname + ':</b>'+ data.message + '<br />');
     });
 

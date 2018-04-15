@@ -34,6 +34,7 @@ var status=[];
 var userSchema = mongoose.Schema({
     nickname: String,
     socketid: String,
+    roomname: String,
     status: {type:Boolean, default:false}
 });
 
@@ -99,29 +100,28 @@ io.on('connection', function(socket){
             console.log(users[socket.id]);
 
             //bu kullanıcı daha önceden oluşturulmuş mu?
-            user.findOne({ 'nickname': data }, function(err, result) {
+            user.findOne({ 'nickname': data.nickname }, function(err, result) {
                 if (err) {
                     throw err;
                 }
 
                 if (result) { //kullanıcı önceden oluşturulmuş.
+
                     callback(false);
 
 
 
                     //kullanıcının yeni soket adresini güncelle.
-                    user.findOneAndUpdate({nickname:data},{$set:{socketid:socket.id, status:true}},function(err,doc){
+                    user.findOneAndUpdate({nickname:data.nickname},{$set:{socketid:socket.id, status:true}},function(err,doc){
                         if(err) throw err;
                         console.log("Güncelleme başarılı!");
-                        console.log(data+'='+socket.id);
-                        users[data]=socket.id;
+                        console.log(data.nickname+'='+socket.id);
+                        users[data.nickname]=socket.id;
 
                         //Kullanıcının durumunu diziye atama.
-                        status.push(data);
-                        socket.index=status.indexOf(data);
+                        status.push(data.nickname);
+                        socket.index=status.indexOf(data.nickname);
 
-                        //socket.emit('online', data); //kendine
-                        //io.sockets.emit('online', data);
 
                         updateNicknames();
                         });
@@ -134,17 +134,17 @@ io.on('connection', function(socket){
 
                 } else {  // burada yeni kullanıcı kaydedilecek.
                     callback(true);
-                    socket.nickname = data;
+                    socket.nickname = data.nickname;
                     users[socket.nickname] = socket.id;
-                    status.push(data);
-                    socketindex= status.indexOf(data);
-                    //socket.emit('online', data); //kendine
-                    //io.sockets.emit('online', data);
+                    status.push(data.nickname);
+                    socketindex= status.indexOf(data.nickname);
+                    socket.join(data.roomname);
+
 
                     updateNicknames();
 
 
-                    var newUser= new user({nickname:data, socketid: socket.id, status:true});
+                    var newUser= new user({nickname:data.nickname, socketid: socket.id, roomname:data.roomname, status:true});
 
                     newUser.save(function(err){
                         if(err) throw err;
@@ -159,9 +159,8 @@ io.on('connection', function(socket){
             socket.on("get private messages", function(data){
                 message.find( {$or: [{$and:[{sender:data.nickname},{receiver:data.to}]},{$and:[{sender:data.to},{receiver:data.nickname}]}]}).exec( function(err, docs){
                     if(err) throw err;
-                    console.log(docs);
-                    //socket.emit('get all messages', docs); //kendine
-                    //io.sockets.emit('get all messages', docs);
+
+
                     io.to(socket.id).emit('private messages', docs);
                 });
             });
@@ -175,15 +174,47 @@ io.on('connection', function(socket){
             message.find({receiver: 'all'}).exec(function (err, docs) {
                 if (err) throw err;
                 console.log(docs);
-                //socket.emit('get all messages', docs); //kendine
-                //io.sockets.emit('get all messages', docs);
+
                 io.to(socket.id).emit('get all messages', docs);
             });
         }
 
+        socket.on('get room messages', function(data ,callback) {
+
+            user.findOne({nickname: data.nickname}, function (err, result) {
+                if (err) {
+                    throw err;
+                }
+
+                if (result.roomname === data.roomname) { //kullanıcı odaya kayıtlı
+                    callback(true);
+
+                    message.find({receiver: data.roomname}).exec(function (err, docs) {
+                        if (err) throw err;
+
+
+                        io.to(data.roomname).emit('room', docs);
+                    });
+
+
+                } else { //kullanıcı odada bulunmuyor.
+                    callback(false);
+
+
+                }
+            })
+
+        });
+
         socket.on('get public', function(data){
             getAllMessages();
         })
+
+
+
+
+
+
 
 
 
@@ -205,6 +236,15 @@ io.on('connection', function(socket){
                     io.sockets.emit('new message', {message: data.msg, nickname: data.nickname}); //gelen mesajı tüm clientlara
                 });
 
+            }else if((data.to === 'Ev') ||(data.to === 'Is') || (data.to === 'Okul')){
+                console.log("grup mesajlasma= ", data.to);
+                var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
+                newMsg.save(function(err){
+                    if(err) throw err;
+                    //console.log('karşıdaki:'+users[data.to]);
+                    //socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
+                    io.to(data.to).emit('new message', {message: data.msg, nickname: data.nickname}); //karşıdakine
+                });
             }else{ // özel mesaj gönderme
                 console.log(data.nickname);
                 var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
@@ -218,12 +258,7 @@ io.on('connection', function(socket){
         });
 
 
-        //broadcast
-        /*socket.on('yaziyor', function(data){
 
-            socket.broadcast.emit('yaziyor',data);
-
-        }); */
 
 
         //kullanıcı uygulamadan çıktığında
