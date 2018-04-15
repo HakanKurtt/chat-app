@@ -5,6 +5,8 @@ var mongoose = require('mongoose');
 //var MongoClient = mongodb.MongoClient;
 //var url = 'mongodb://localhost:27017/chat-app';
 
+var path = require('path');
+
 var logger = require('morgan');  // isteklerle ilgili logları konsola yazmak için
 
 
@@ -54,6 +56,7 @@ var message = mongoose.model('message',msgSchema);
 //statik dosyalar
 app.use(express.static('public'));
 
+console.log(__dirname);
 
 
 
@@ -117,7 +120,7 @@ io.on('connection', function(socket){
                         console.log("Güncelleme başarılı!");
                         console.log(data.nickname+'='+socket.id);
                         users[data.nickname]=socket.id;
-
+                        socket.join(data.roomname);
                         //Kullanıcının durumunu diziye atama.
                         status.push(data.nickname);
                         socket.index=status.indexOf(data.nickname);
@@ -138,6 +141,7 @@ io.on('connection', function(socket){
                     users[socket.nickname] = socket.id;
                     status.push(data.nickname);
                     socketindex= status.indexOf(data.nickname);
+
                     socket.join(data.roomname);
 
 
