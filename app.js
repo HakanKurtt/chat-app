@@ -177,7 +177,7 @@ io.on('connection', function(socket){
 
             message.find({receiver: 'all'}).exec(function (err, docs) {
                 if (err) throw err;
-                console.log(docs);
+                //console.log(docs);
 
                 io.to(socket.id).emit('get all messages', docs);
             });
@@ -230,35 +230,56 @@ io.on('connection', function(socket){
 
         //istemciden gelen chat olayını yakala.
         socket.on('send message', function(data){
+            console.log("tooo="+data.nickname);
 
             if(data.to === 'all'){ //herkese mesaj gönderme
                 var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
                 newMsg.save(function(err){
                     if(err) throw err;
 
-                    socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
+                    //socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
                     io.sockets.emit('new message', {message: data.msg, nickname: data.nickname}); //gelen mesajı tüm clientlara
                 });
 
-            }else if((data.to === 'Ev') ||(data.to === 'Is') || (data.to === 'Okul')){
-                console.log("grup mesajlasma= ", data.to);
-                var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
-                newMsg.save(function(err){
-                    if(err) throw err;
-                    //console.log('karşıdaki:'+users[data.to]);
-                    //socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
-                    io.to(data.to).emit('new message', {message: data.msg, nickname: data.nickname}); //karşıdakine
-                });
-            }else{ // özel mesaj gönderme
+            }else if((data.to != 'all') || (data.to != 'Ev') || (data.to != 'Is') || (data.to != 'Okul')){
                 console.log(data.nickname);
                 var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
                 newMsg.save(function(err){
                     if(err) throw err;
-                    console.log('karşıdaki:'+users[data.to]);
+                   // console.log('karşıdaki:'+users[data.to]);
                     socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
                     io.to(users[data.to]).emit('new message', {message: data.msg, nickname: data.nickname}); //karşıdakine
                 });
+            } else if(data.roomname == data.to){
+                //user.findOne({$and:[{nickname:data.nickname},{roomname:data.to}]},function(err, result){
+                 //   if(err) throw err;
+
+
+
+                    if(result==null){
+                        console.log("kisi grupta yok");
+                    }else{
+                        if((data.to === 'Ev') ||(data.to === 'Is') || (data.to === 'Okul')){
+                                console.log("grup mesajlasma= ", data.to);
+                                var newMsg = new message({message: data.msg, sender: data.nickname, receiver: data.to});
+                                newMsg.save(function(err){
+                                    if(err) throw err;
+                                    //console.log('karşıdaki:'+users[data.to]);
+                                    //socket.emit('new message', {message: data.msg, nickname: data.nickname}); //kendine
+                                    io.to(data.to).emit('new message', {message: data.msg, nickname: data.nickname}); //karşıdakine
+                                });
+                            }
+                    }
+                //});
+
+            }else {
+                console.log("kisi grupta yok!!");
             }
+
+
+
+
+
         });
 
 

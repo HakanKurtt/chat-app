@@ -78,10 +78,10 @@ $(function() {
 
 
 
-
+    //Kişi mesaj yazıp submit ettiğinde send message olayı yayar.
     $messageForm.submit(function (e) {
        e.preventDefault();
-       socket.emit('send message', { nickname:$nickBox.val(), msg:$messageBox.val(), to: to});
+       socket.emit('send message', { nickname:$nickBox.val(), msg:$messageBox.val(), to: to, roomname:$roomname.val()});
        $messageBox.val('');
     });
 
@@ -94,7 +94,7 @@ $(function() {
     //Herkes'e tıklayınca genel mesajları getir.
     $(document).on('click','#herkes',function(){
         to = 'all';
-
+        console.log(to);
 
         socket.emit("get public", to);
     });
@@ -150,6 +150,7 @@ $(function() {
         $chat.append('<b>'+ data.nickname + ':</b>'+ data.message + '<br />');
     });
 
+    //Aktif ve pasif kullanıcıların gösterimi
     socket.on('status', function(status){
 
 
@@ -168,7 +169,7 @@ $(function() {
 
                 });
             }
-        }, 1000); //settimeout finish.
+        }, 500); //settimeout finish.
 
     });
 
